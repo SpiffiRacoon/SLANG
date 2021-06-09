@@ -39,12 +39,6 @@
 #define SCM_TIMESTAMPING SO_TIMESTAMPING
 #endif
 
-struct scm_timestamping {
-        struct timespec systime;
-        struct timespec hwtimesys;
-        struct timespec hwtimeraw;
-};
-
 /**
  * Try to enable hardware timestamping, otherwise fall back to kernel.
  *
