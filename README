@@ -223,7 +223,7 @@ probed: client: ::ffff:127.0.0.1: Connection lost
 
 ________________________________________________________________________
 Updated instructions to compile the program.
-Make sure you have both: autmake and make installed.
+Make sure you have both: auotmake and make installed.
 
 Do the following commands in the terminal:
 $ aclocal
