@@ -66,3 +66,170 @@ A: You have probably a kernel with CONFIG_NETWORK_PHY_TIMESTAMPING but
 
 Q: I have checked everything, but still get timestamp errors!
 A: Please contact us!
+
+________________________________________________________________________
+TrashPanda edit.
+
+While trying to revive this software and getting it to work on modern 
+linux systems I have noted a few things that get in the way when you try 
+to compile the probed program. My terminal output is what follow after 
+I tried compiling it:
+
+oskarl@oskar-hpstreamnotebookpc13:~/github/SpiffiRacoon/SLANG$ aclocal
+oskarl@oskar-hpstreamnotebookpc13:~/github/SpiffiRacoon/SLANG$ autoconf
+oskarl@oskar-hpstreamnotebookpc13:~/github/SpiffiRacoon/SLANG$ automake -a
+configure.ac:4: installing './compile'
+configure.ac:2: installing './install-sh'
+configure.ac:2: installing './missing'
+probed/Makefile.am: installing './depcomp'
+oskarl@oskar-hpstreamnotebookpc13:~/github/SpiffiRacoon/SLANG$ ./configure
+checking for a BSD-compatible install... /usr/bin/install -c
+checking whether build environment is sane... yes
+checking for a thread-safe mkdir -p... /usr/bin/mkdir -p
+checking for gawk... no
+checking for mawk... mawk
+checking whether make sets $(MAKE)... yes
+checking whether make supports nested variables... yes
+checking whether make supports nested variables... (cached) yes
+checking for gcc... gcc
+checking whether the C compiler works... yes
+checking for C compiler default output file name... a.out
+checking for suffix of executables... 
+checking whether we are cross compiling... no
+checking for suffix of object files... o
+checking whether we are using the GNU C compiler... yes
+checking whether gcc accepts -g... yes
+checking for gcc option to accept ISO C89... none needed
+checking whether gcc understands -c and -o together... yes
+checking whether make supports the include directive... yes (GNU style)
+checking dependency style of gcc... gcc3
+checking for pkg-config... /usr/bin/pkg-config
+checking pkg-config is at least version 0.9.0... yes
+checking for XML2... yes
+checking that generated files are newer than configure... done
+configure: creating ./config.status
+config.status: creating Makefile
+config.status: creating probed/Makefile
+config.status: executing depfiles commands
+oskarl@oskar-hpstreamnotebookpc13:~/github/SpiffiRacoon/SLANG$ make
+Making all in probed
+make[1]: Entering directory '/home/oskarl/github/SpiffiRacoon/SLANG/probed'
+  CC       probed-client.o
+  CC       probed-loop.o
+  CC       probed-main.o
+  CC       probed-net.o
+  CC       probed-tstamp.o
+tstamp.c:42:8: error: redefinition of ‘struct scm_timestamping’
+   42 | struct scm_timestamping {
+      |        ^~~~~~~~~~~~~~~~
+In file included from tstamp.c:29:
+/usr/include/linux/errqueue.h:41:8: note: originally defined here
+   41 | struct scm_timestamping {
+      |        ^~~~~~~~~~~~~~~~
+tstamp.c: In function ‘tstamp_mode_userland’:
+tstamp.c:143:6: warning: type of ‘sock’ defaults to ‘int’ [-Wimplicit-int]
+  143 | void tstamp_mode_userland(sock) {
+      |      ^~~~~~~~~~~~~~~~~~~~
+make[1]: *** [Makefile:438: probed-tstamp.o] Error 1
+make[1]: Leaving directory '/home/oskarl/github/SpiffiRacoon/SLANG/probed'
+make: *** [Makefile:335: all-recursive] Error 1
+oskarl@oskar-hpstreamnotebookpc13:~/github/SpiffiRacoon/SLANG$ 
+
+I'm guessing this error occurs due to a update to the linux kernal in the 
+errqueue.h file in the linux kernal. Not surprising since the master repo 
+hasn't been updated in 8 years.
+
+________________________________________________________________________
+TrashPanda workaround?
+
+To workaround the problem I had to do 2 things.
+
+1. Remove the following lines from /probed/tstamp.c:
+
+struct scm_timestamping {
+        struct timespec systime;
+        struct timespec hwtimesys;
+        struct timespec hwtimeraw;
+};
+(By the time you are reading this I might have already done this to 
+this forked repo.)
+
+2. Edit /usr/include/linux/errqueue.h and add these lines after
+"struct scm_timestamping {":
+
+        struct timespec systime;
+        struct timespec hwtimesys;
+        struct timespec hwtimeraw;
+        
+Now you should be abel to compile the probed program.
+
+Note: I do not know if the program works as intended but after running: 
+$ ./probed -c 127.0.0.1 -u
+on my personal computer running lubuntu 20.04 i get this output:
+
+SLA-NG probed 0.3
+probed: Binding port 60666
+probed: Using userland timestamps
+probed: Reloading configuration...
+probed: time diff large @0: s: 0 ns: 97327868; time_dev: -973
+probed: time_passed: s: 0 ns: 2672132; ideal: s: 0 ns: 100000000
+probed: client: ::ffff:127.0.0.1: Connecting to port 60666
+probed: server: ::ffff:127.0.0.1: 12: Connected
+probed: client: ::ffff:127.0.0.1: Connected
+probed: time diff large @100: s: 0 ns: 81857689; time_dev: 518
+probed: time_passed: s: 0 ns: 181857689; ideal: s: 0 ns: 100000000
+probed: Found 2 trigger messages queued
+probed: Found 3 trigger messages queued
+probed: Found 2 trigger messages queued
+probed: Found 3 trigger messages queued
+probed: Found 2 trigger messages queued
+probed: time diff large @200: s: 0 ns: 4611371; time_dev: 346
+probed: time_passed: s: 0 ns: 104611371; ideal: s: 0 ns: 100000000
+probed: time diff large @300: s: 0 ns: 8587048; time_dev: 385
+probed: time_passed: s: 0 ns: 108587048; ideal: s: 0 ns: 100000000
+probed: Found 4 trigger messages queued
+probed: time diff large @400: s: 0 ns: 12739501; time_dev: 427
+probed: time_passed: s: 0 ns: 112739501; ideal: s: 0 ns: 100000000
+probed: time diff large @500: s: 0 ns: 14144086; time_dev: 441
+probed: time_passed: s: 0 ns: 114144086; ideal: s: 0 ns: 100000000
+probed: Found 3 trigger messages queued
+Response    1 from 0 in 60813 ns
+probed: Found 2 trigger messages queued
+probed: time diff large @700: s: 0 ns: 29794644; time_dev: 511
+probed: time_passed: s: 0 ns: 129794644; ideal: s: 0 ns: 100000000
+probed: time diff large @800: s: 0 ns: 27848468; time_dev: 578
+probed: time_passed: s: 0 ns: 127848468; ideal: s: 0 ns: 100000000
+probed: Found 2 trigger messages queued
+probed: Found 2 trigger messages queued
+probed: Found 7 trigger messages queued
+probed: Found 2 trigger messages queued
+probed: Found 2 trigger messages queued
+probed: time diff large @900: s: 0 ns: 8446222; time_dev: 384
+probed: time_passed: s: 0 ns: 108446222; ideal: s: 0 ns: 100000000
+probed: Found 2 trigger messages queued
+probed: time diff large @1000: s: 0 ns: 14034348; time_dev: 440
+probed: time_passed: s: 0 ns: 114034348; ideal: s: 0 ns: 100000000
+Response    2 from 0 in 50676 ns
+probed: time diff large @1100: s: 0 ns: 13421706; time_dev: 434
+probed: time_passed: s: 0 ns: 113421706; ideal: s: 0 ns: 100000000
+probed: time diff large @1200: s: 0 ns: 20994046; time_dev: 509
+probed: time_passed: s: 0 ns: 120994046; ideal: s: 0 ns: 100000000
+probed: Found 3 trigger messages queued
+^C
+2 ok, 0 dscp errors, 0 ts errors, 0 unknown/dups
+0 lost pongs, 0 timeouts, 0.000000% loss
+max: 60813 ns, avg: 55744 ns, min: 50676 ns
+probed: client: ::ffff:127.0.0.1: Connection lost
+
+________________________________________________________________________
+Updated instructions to compile the program.
+Make sure you have both: autmake and make installed.
+
+Do the following commands in the terminal:
+$ aclocal
+$ autoconf
+$ automake -a
+$ ./configure
+$ make
+
+Now there should be a probed executable in the probed folder :).
